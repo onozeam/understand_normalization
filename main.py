@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
+import argparse
 
 
 class BatchNorm:
@@ -22,8 +23,8 @@ class BatchNorm:
         """
         mu = np.average(x, axis=0)
         var = np.var(x, axis=0)
-        normlized_x = (x-mu) / np.sqrt(var+self.epsilon)
-        out = normlized_x*self.w + self.b
+        normalized_x = (x-mu) / np.sqrt(var+self.epsilon)
+        out = normalized_x*self.w + self.b
         self.x, self.mu, self.var = x, mu, var  # caching
         return out
 
@@ -42,7 +43,35 @@ class BatchNorm:
         return dx, dw, db
 
 
-def main():
+class LayerNorm:
+    def __init__(self, seq_size):
+        # params
+        self.w = np.random.randn(seq_size)
+        self.b = np.zeros(seq_size)
+        self.epsilon = 0.00001
+
+    def __call__(self, args):
+        return self.forward(args)
+
+    def forward(self, x):
+        """
+        Shape
+            x: (batch_size, seq_size)
+            out: (batch_size, seq_size)
+        """
+        mu = np.average(x, axis=1)
+        var = np.var(x, axis=1)
+        normalized_x = (x.T-mu) / np.sqrt(var+self.epsilon)
+        out = normalized_x.T*self.w + self.b
+        # self.x, self.mu, self.var = x, mu, var  # caching
+        return out
+
+    def backward(self, x):
+        # todo
+        raise NotImplementedError
+
+
+def batch_norm():
     N, S = 32, 124
     x, dout = np.random.randn(N, S), np.random.randn(N, S)
     batch_norm_layer = BatchNorm(S)
@@ -54,6 +83,28 @@ def main():
     print(f' - dx.shape: {dx.shape}')
     print(f' - dw.shape: {dw.shape}')
     print(f' - db.shape: {db.shape}')
+
+
+def layer_norm():
+    N, S = 32, 124
+    # x, dout = np.random.randn(N, S), np.random.randn(N, S)
+    x = np.random.randn(N, S)
+    layer_norm_layer = LayerNorm(S)
+    out = layer_norm_layer(x)
+    print('# forward')
+    print(f' - out.shape: {out.shape}')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Initialize training parameter.')
+    parser.add_argument('-type', required=True, type=str, help='Please choose normalization type from "batch" or "layer".')
+    args = parser.parse_args()
+    if args.type == 'batch':
+        batch_norm()
+    elif args.type == 'layer':
+        layer_norm()
+    else:
+        raise NotImplementedError('types are only "batch" only "layer".')
 
 
 if __name__ == '__main__':
